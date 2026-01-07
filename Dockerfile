@@ -1,7 +1,7 @@
 FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
-COPY target/grocery-backend-*.jar app.jar
+COPY target/grocery-backend-1.0.0.jar app.jar
 EXPOSE 8080
 
 RUN apk add --no-cache curl
