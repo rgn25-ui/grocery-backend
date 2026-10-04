@@ -30,12 +30,20 @@ public class GroceryService {
         return listRepository.findByIdAndIsDeletedFalse(id);
     }
     
+    /**
+     * Creates or updates a list (the client sends the id, so save() is an upsert).
+     * A write older than the stored row is ignored, so a late retry cannot overwrite a newer change.
+     */
     public GroceryListEntity createList(GroceryListEntity list) {
+        Optional<GroceryListEntity> stored = listRepository.findById(list.getId());
+        if (stored.isPresent() && SyncRules.isStale(list.getUpdatedAt(), stored.get().getUpdatedAt())) {
+            return stored.get();
+        }
         return listRepository.save(list);
     }
     
     public GroceryListEntity updateList(GroceryListEntity list) {
-        return listRepository.save(list);
+        return createList(list);
     }
 	
 	public boolean deleteList(String id) {
@@ -79,20 +87,31 @@ public class GroceryService {
         return itemRepository.findByIdAndIsDeletedFalse(id);
     }
     
+    /**
+     * Creates or updates an item (the client sends the id, so save() is an upsert).
+     * A write older than the stored row is ignored, so a late retry cannot overwrite a newer change.
+     * completedAt is maintained here so the purchase time survives later edits and deletes.
+     */
     public GroceryItemEntity createItem(GroceryItemEntity item) {
+        GroceryItemEntity stored = itemRepository.findById(item.getId()).orElse(null);
+        if (stored != null && SyncRules.isStale(item.getUpdatedAt(), stored.getUpdatedAt())) {
+            return stored;
+        }
+        item.setCompletedAt(SyncRules.resolveCompletedAt(item, stored));
         return itemRepository.save(item);
     }
     
     public GroceryItemEntity updateItem(GroceryItemEntity item) {
-        return itemRepository.save(item);
+        return createItem(item);
     }
        
 	public boolean deleteItem(String id) {
     return itemRepository.softDeleteById(id, System.currentTimeMillis()) > 0;
 	}
     
+    /** Soft delete, so the purchases stay in the analytics and other devices see the deletion on sync. */
     public int clearCompletedItems(String listId) {
-        return itemRepository.deleteCompletedItemsByListId(listId);
+        return itemRepository.softDeleteCompletedItemsByListId(listId, System.currentTimeMillis());
     }
     
     @Transactional

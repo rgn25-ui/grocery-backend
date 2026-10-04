@@ -2,6 +2,7 @@ package com.grocerylist.backend.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Order(1)
@@ -30,9 +32,13 @@ public class RateLimitFilter implements Filter {
         String ip = getClientIP(httpRequest);
         Bucket bucket = buckets.computeIfAbsent(ip, k -> createBucket());
         
-        if (bucket.tryConsume(1)) {
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        if (probe.isConsumed()) {
             chain.doFilter(request, response);
         } else {
+            // Tells the client how long to wait before retrying
+            long waitSeconds = Math.max(1, TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill()));
+            httpResponse.setHeader("Retry-After", String.valueOf(waitSeconds));
             httpResponse.setStatus(429);
             httpResponse.setContentType("application/json");
             httpResponse.getWriter().write("{\"error\":\"Too many requests\"}");

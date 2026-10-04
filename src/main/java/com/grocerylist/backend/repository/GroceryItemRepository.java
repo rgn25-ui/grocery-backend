@@ -26,11 +26,18 @@ public interface GroceryItemRepository extends JpaRepository<GroceryItemEntity, 
 	@Query("UPDATE GroceryItemEntity SET isDeleted = true, updatedAt = :updatedAt WHERE id = :id")
 	int softDeleteById(@Param("id") String id, @Param("updatedAt") Long updatedAt);
     
-    // Delete completed items from a list
+    // Soft delete completed items from a list (keeps them for the purchase analytics)
     @Modifying
     @Transactional
-    @Query("DELETE FROM GroceryItemEntity WHERE listId = :listId AND isCompleted = true")
-    int deleteCompletedItemsByListId(@Param("listId") String listId);
+    @Query("UPDATE GroceryItemEntity SET isDeleted = true, updatedAt = :updatedAt " +
+           "WHERE listId = :listId AND isCompleted = true AND isDeleted = false")
+    int softDeleteCompletedItemsByListId(@Param("listId") String listId, @Param("updatedAt") Long updatedAt);
+
+    // One-time backfill: completed rows from before completed_at existed get their current purchase time
+    @Modifying
+    @Transactional
+    @Query("UPDATE GroceryItemEntity SET completedAt = updatedAt WHERE isCompleted = true AND completedAt IS NULL")
+    int backfillCompletedAt();
     
     // Count items in a list
     long countByListIdAndIsDeletedFalse(String listId);
