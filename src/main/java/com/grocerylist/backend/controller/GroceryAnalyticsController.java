@@ -2,6 +2,7 @@ package com.grocerylist.backend.controller;
 
 import com.grocerylist.backend.dto.ItemPurchaseAnalytics;
 import com.grocerylist.backend.dto.PurchaseDate;
+import com.grocerylist.backend.dto.TopItemStats;
 import com.grocerylist.backend.service.GroceryAnalyticsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -60,5 +61,52 @@ public class GroceryAnalyticsController {
 
         List<String> items = analyticsService.searchUserItems(userId, query);
         return ResponseEntity.ok(items);
+    }
+
+    /**
+     * Get purchase count for multiple items over different time periods
+     * @param userId The user ID
+     * @param itemNames Comma-separated list of item names
+     * @return Combined analytics data
+     */
+    @GetMapping("/items-frequency")
+    public ResponseEntity<ItemPurchaseAnalytics> getItemsFrequency(
+            @RequestParam String userId,
+            @RequestParam String itemNames) {
+
+        List<String> items = java.util.Arrays.asList(itemNames.split(","));
+        ItemPurchaseAnalytics analytics = analyticsService.getItemsPurchaseFrequency(userId, items);
+        return ResponseEntity.ok(analytics);
+    }
+
+    /**
+     * Get all dates when multiple items were purchased
+     * @param userId The user ID
+     * @param itemNames Comma-separated list of item names
+     * @return Combined list of purchase dates
+     */
+    @GetMapping("/items-purchase-dates")
+    public ResponseEntity<List<PurchaseDate>> getItemsPurchaseDates(
+            @RequestParam String userId,
+            @RequestParam String itemNames) {
+
+        List<String> items = java.util.Arrays.asList(itemNames.split(","));
+        List<PurchaseDate> dates = analyticsService.getItemsPurchaseDates(userId, items);
+        return ResponseEntity.ok(dates);
+    }
+
+    /**
+     * Get top purchased items sorted by frequency
+     * @param userId The user ID
+     * @param limit Maximum number of items to return (default 50)
+     * @return List of items with purchase counts
+     */
+    @GetMapping("/top-items")
+    public ResponseEntity<List<TopItemStats>> getTopItems(
+            @RequestParam String userId,
+            @RequestParam(defaultValue = "50") int limit) {
+
+        List<TopItemStats> topItems = analyticsService.getTopItems(userId, limit);
+        return ResponseEntity.ok(topItems);
     }
 }
