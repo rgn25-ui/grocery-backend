@@ -52,9 +52,9 @@ public class GroceryController {
 		try {
 			System.out.println("DEBUG: Sync request for userId: " + userId);
 			
-			// CHANGED: Use new methods that include deleted items
+			// Active and recently deleted lists, and only the items of those lists
 			List<GroceryListEntity> lists = groceryService.getAllListsForSync(userId);
-			List<GroceryItemEntity> items = groceryService.getAllItemsForUserSync(userId);
+			List<GroceryItemEntity> items = groceryService.getItemsForSync(lists);
 			
 			SyncDataResponse response = new SyncDataResponse(lists, items);
 			System.out.println("DEBUG: Returning " + lists.size() + " lists and " + items.size() + " items (including deleted)");

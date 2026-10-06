@@ -143,13 +143,17 @@ public class GroceryService {
 		return listRepository.findActiveAndRecentlyDeletedLists(userId, thirtyDaysAgo);
 	}
     	
-	// Get items for sync - exclude old deleted items
-	public List<GroceryItemEntity> getAllItemsForUserSync(String userId) {
+	/**
+	 * Items for sync: only items of the lists the sync returns (active and recently deleted).
+	 * Items of lists deleted more than 30 days ago are left out, since the client would not
+	 * have their list. Old deleted items are excluded as well.
+	 */
+	public List<GroceryItemEntity> getItemsForSync(List<GroceryListEntity> syncLists) {
+		if (syncLists.isEmpty()) {
+			return List.of();
+		}
 		long thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000);
-		
-		List<GroceryListEntity> userLists = listRepository.findAllByUserId(userId);
-		List<String> listIds = userLists.stream().map(GroceryListEntity::getId).toList();
-		
+		List<String> listIds = syncLists.stream().map(GroceryListEntity::getId).toList();
 		return itemRepository.findActiveAndRecentlyDeletedItems(listIds, thirtyDaysAgo);
 	}
 }

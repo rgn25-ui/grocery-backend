@@ -50,6 +50,13 @@
             <groupId>com.google.cloud.sql</groupId>
             <artifactId>postgres-socket-factory</artifactId>
             <version>1.15.0</version>
+            <exclusions>
+                <!-- Pulled in via google-http-client/httpclient; Spring's spring-jcl provides the same API -->
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         
         <!-- Spring Boot Actuator -->
